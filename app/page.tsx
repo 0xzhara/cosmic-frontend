@@ -1,95 +1,252 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
+
+import { useState } from "react";
+import EthereumProvider from "@walletconnect/ethereum-provider";
+import { ethers } from "ethers";
+
+// ABI smart contract (yang kamu kasih)
+const CONTRACT_ABI = [
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "user", "type": "address" },
+      { "indexed": false, "internalType": "uint256", "name": "newCount", "type": "uint256" }
+    ],
+    "name": "CheckedIn",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "sender", "type": "address" },
+      { "indexed": false, "internalType": "string", "name": "message", "type": "string" },
+      { "indexed": false, "internalType": "uint256", "name": "timestamp", "type": "uint256" }
+    ],
+    "name": "MessageSent",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": false, "internalType": "uint256", "name": "id", "type": "uint256" },
+      { "indexed": false, "internalType": "string", "name": "description", "type": "string" }
+    ],
+    "name": "ProposalCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": false, "internalType": "uint256", "name": "id", "type": "uint256" },
+      { "indexed": false, "internalType": "address", "name": "voter", "type": "address" }
+    ],
+    "name": "Voted",
+    "type": "event"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "name": "checkInCount",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "string", "name": "_description", "type": "string" }],
+    "name": "createProposal",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "dailyCheckIn",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "_proposalId", "type": "uint256" }],
+    "name": "getProposal",
+    "outputs": [
+      { "internalType": "string", "name": "", "type": "string" },
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" },
+      { "internalType": "address", "name": "", "type": "address" }
+    ],
+    "name": "hasVoted",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "proposalCount",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "name": "proposals",
+    "outputs": [
+      { "internalType": "string", "name": "description", "type": "string" },
+      { "internalType": "uint256", "name": "votes", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "string", "name": "_message", "type": "string" }],
+    "name": "sendMessage",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "_proposalId", "type": "uint256" }],
+    "name": "vote",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+];
 
 export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>app/page.tsx</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [account, setAccount] = useState<string | null>(null);
+  const [wcProvider, setWcProvider] = useState<any>(null);
+  const [signer, setSigner] = useState<any>(null);
+  const [status, setStatus] = useState("");
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+  const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS!;
+  const PROJECT_ID = process.env.NEXT_PUBLIC_WC_PROJECT_ID!;
+  const CHAIN_ID = Number(process.env.NEXT_PUBLIC_CHAIN_ID || 42220); // Celo Mainnet = 42220
+
+  async function connect() {
+    try {
+      setStatus("Opening WalletConnect modal...");
+      const provider = await EthereumProvider.init({
+        projectId: PROJECT_ID,
+        chains: [CHAIN_ID],
+        showQrModal: true
+      });
+
+      await provider.connect();
+
+      const ethersProvider = new ethers.BrowserProvider(provider as any);
+      const s = await ethersProvider.getSigner();
+      const addr = await s.getAddress();
+
+      setWcProvider(provider);
+      setSigner(s);
+      setAccount(addr);
+      setStatus("Connected: " + addr);
+    } catch (err: any) {
+      console.error(err);
+      setStatus("Connect error: " + (err?.message || err));
+    }
+  }
+
+  async function disconnect() {
+    try {
+      if (wcProvider) {
+        await wcProvider.disconnect();
+        setAccount(null);
+        setSigner(null);
+        setWcProvider(null);
+        setStatus("Disconnected");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setStatus("Disconnect error: " + (err?.message || err));
+    }
+  }
+
+  async function dailyCheckIn() {
+    if (!signer) return setStatus("Please connect first");
+    try {
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+      const tx = await contract.dailyCheckIn();
+      setStatus("⏳ Submitted: " + tx.hash);
+      const receipt = await tx.wait();
+      setStatus("✅ Confirmed in block " + receipt.blockNumber);
+    } catch (err: any) {
+      console.error(err);
+      setStatus("Error: " + (err?.message || err));
+    }
+  }
+
+  async function createProposal() {
+    if (!signer) return setStatus("Please connect first");
+    const desc = prompt("Proposal description:");
+    if (!desc) return;
+    try {
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+      const tx = await contract.createProposal(desc);
+      setStatus("⏳ Submitted: " + tx.hash);
+      const receipt = await tx.wait();
+      setStatus("✅ Proposal created in block " + receipt.blockNumber);
+    } catch (err: any) {
+      console.error(err);
+      setStatus("Error: " + (err?.message || err));
+    }
+  }
+
+  async function vote() {
+    if (!signer) return setStatus("Please connect first");
+    const id = prompt("Proposal ID:");
+    if (!id) return;
+    try {
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+      const tx = await contract.vote(Number(id));
+      setStatus("⏳ Submitted: " + tx.hash);
+      const receipt = await tx.wait();
+      setStatus("✅ Vote confirmed in block " + receipt.blockNumber);
+    } catch (err: any) {
+      console.error(err);
+      setStatus("Error: " + (err?.message || err));
+    }
+  }
+
+  async function sendMessage() {
+    if (!signer) return setStatus("Please connect first");
+    const msg = prompt("Your message:");
+    if (!msg) return;
+    try {
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+      const tx = await contract.sendMessage(msg);
+      setStatus("⏳ Submitted: " + tx.hash);
+      const receipt = await tx.wait();
+      setStatus("✅ Message sent in block " + receipt.blockNumber);
+    } catch (err: any) {
+      console.error(err);
+      setStatus("Error: " + (err?.message || err));
+    }
+  }
+
+  return (
+    <div style={{ padding: 24, fontFamily: "Arial, sans-serif" }}>
+      <h1>🚀 Cosmic (Celo Mainnet)</h1>
+      <p>{status}</p>
+
+      {account ? (
+        <>
+          <p>Connected: {account}</p>
+          <button onClick={disconnect}>Disconnect</button>
+          <hr />
+          <button onClick={dailyCheckIn}>Daily Check-In</button>
+          <button onClick={createProposal}>Create Proposal</button>
+          <button onClick={vote}>Vote</button>
+          <button onClick={sendMessage}>Send Message</button>
+        </>
+      ) : (
+        <button onClick={connect}>Connect Wallet (WalletConnect)</button>
+      )}
     </div>
   );
 }
