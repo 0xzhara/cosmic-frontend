@@ -3,6 +3,14 @@
 import { useState } from "react";
 import EthereumProvider from "@walletconnect/ethereum-provider";
 import { ethers } from "ethers";
+import Link from "next/link";
+
+// dalam return JSX
+<div style={{ marginTop: 20 }}>
+  <Link href="/session-test">
+    <button>🔗 Open Session Stress Test</button>
+  </Link>
+</div>
 
 // ABI smart contract (yang kamu kasih)
 const CONTRACT_ABI = [
